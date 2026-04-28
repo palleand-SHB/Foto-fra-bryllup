@@ -1,15 +1,15 @@
 /* =====================================================
    METTE & PALLE – BRYLLUPSAPP
    app.js – Dropbox upload + UI logic
+   =====================================================
+   Token læses fra config.js (som IKKE er på GitHub).
+   Se config.example.js for opsætningsvejledning.
    ===================================================== */
 
-// ─────────────────────────────────────────────────────
-//  👇 INDSÆT DIN DROPBOX ACCESS TOKEN HER
-// ─────────────────────────────────────────────────────
-const DROPBOX_ACCESS_TOKEN = 'sl.u.AGdSe2h-KNHzaOT-KO62XV_vr0smsVNWYmSdxvjeV7xd6NUDuVcNW_QavxZM_dXXcdz1zO16n5ypilGAeyy4bXcHiRTT2V12ZgOWhsof2CSxAhBlzuH1g18EjTbabrZtIpQxQmMhXDLIN8pKukjDQNIE7eRQSJjOYltvh48L8FDVYlWhVXpfUBX2gxnJwavfcUKMpGIClZLY6C-liZIBrcqCieVrnBipWMEl1XYTV4JlE42oIhpg7Y1yA3MmV6yKh3l3R9ihhEyb33h13gvehhPsQGLGp2Tvbqpb9lA_4cIgNbWkck34EeSm7OC0CxmQl8xSxUbkwVF1Zw8ql_ixKrme_Xp91nPfj3yz96dlozIKdt1tidxL4dvKlTp-veUzuXfqQMl3JF3dlbPpQqvyt3E_7kp5XYhZgGLWhy-_Y9kyCQOZg80ASk-UK_zC2R4bczJSiYYAW2znpscbUU8E-KfETmixPnDKweBN7pauI_0PdnD3zch4W-96orfMHnTjkJ4Jg8gwdjth5xbD_34EnmfI5jJlolt0K3_vkVQIbg9PvVVj4a97eCYEWYNMBc6e7hjk_trzafRdc_Y_v0DjVXrpfimO3qXw8FjqJ2Yt463F69-GUurU3RKwq8m9g63iVPZF5RtOzZUBX-ctmQr8c2rkv5wViYZUFopGt17g0J3gDA3RELPUbAoQ36ihuHR0_9evUJwcGcLXpLpqAjWr4Tq5-GqSbYum678MHdzkYGpu2JXxgjtPAc0XihucFMTZsWaJSf_dL8nWyhu6ufUMT0NtFTFeYvWcQZHNhpybf4fwEmHWSwF8NYJmMBQrfLE9OBi6gBffObbBMJMB9KIjEqO1sAJE-oARqO7vcE6MWx2T3mLV-svWUEBFA8V_pO3t_VH9nUEcX1UwDSRpf1tixIFCmWWPczw94ObcdfKxw0SrYgu1kR_Zk9VLX-Y65XQU2Z1QsVUp2c7lurlkxjPa6T4sGoEy9fJN2PgmfPEVmRRTryqeqB4a7kh0L74-sNrxs8L8xM7H6WcltWA2NVLA698PdyCfF65CJxnfJjrdMFroXgtKM2aMvYZ2FyocZRn3KLsUCfd20jxbFEiFAuHNUyDbcgSEIrXcJwvPYpAyufT7AyWPucOamzOFmy-YKUjDhtf3YqIsUB5WOOURnsTNUNu9xTe400GMs-mzGld_NpYuQQyXFkCYSjQ28C_coUmIUeW_cAWaHjAXhp5Nyfhd8pJH_oHrjW74QYINSfa72xs5AHHtXX_27F83DZvGRyyCMFkOoF_QN6LNuhVG-zdyLH2I';
-
-//  Hvilken mappe i Dropbox skal billederne lægges i?
-const DROPBOX_FOLDER = '/Bryllup-Mette-og-Palle';
+// Token og mappe hentes fra config.js (ikke på GitHub)
+// Fallback til tomme strenge hvis config.js mangler
+const DROPBOX_ACCESS_TOKEN = (typeof DROPBOX_CONFIG !== 'undefined') ? DROPBOX_CONFIG.token : '';
+const DROPBOX_FOLDER       = (typeof DROPBOX_CONFIG !== 'undefined') ? DROPBOX_CONFIG.folder : '/Bryllup-Mette-og-Palle';
 
 // ─────────────────────────────────────────────────────
 //  GLOBALS
