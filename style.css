@@ -1,0 +1,454 @@
+/* =====================================================
+   METTE & PALLE – BRYLLUPSAPP
+   Wedding Photo Upload – Style
+   ===================================================== */
+
+/* ---------- Tokens ---------- */
+:root {
+  --cream:        #fdf8f0;
+  --gold:         #c9a84c;
+  --gold-light:   #e8d49a;
+  --gold-dark:    #9a7a30;
+  --rose:         #e8b4b8;
+  --rose-dark:    #c27a82;
+  --blush:        #f9eded;
+  --text-dark:    #3a2e2e;
+  --text-mid:     #7a6060;
+  --text-light:   #b09090;
+  --white:        #ffffff;
+  --shadow:       rgba(58, 46, 46, 0.12);
+  --radius-sm:    12px;
+  --radius-md:    20px;
+  --radius-lg:    32px;
+}
+
+/* ---------- Reset & Base ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  background: linear-gradient(160deg, #fdf3e7 0%, #fce8ea 50%, #f3e8f5 100%);
+  min-height: 100vh;
+  color: var(--text-dark);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ---------- Floating Petals ---------- */
+.petals-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.petal {
+  position: absolute;
+  top: -40px;
+  font-size: 1.2rem;
+  opacity: 0.6;
+  animation: fallDown linear infinite;
+  user-select: none;
+}
+
+@keyframes fallDown {
+  0%   { transform: translateY(-40px) rotate(0deg); opacity: 0.7; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+
+/* ---------- App Container ---------- */
+.app-container {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+/* ---------- Header ---------- */
+.wedding-header {
+  text-align: center;
+  padding: 2.5rem 1rem 1.5rem;
+}
+
+.rings-icon {
+  font-size: 2.8rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  animation: gentleBob 3s ease-in-out infinite;
+}
+
+@keyframes gentleBob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+.wedding-date {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  letter-spacing: 0.25em;
+  color: var(--gold-dark);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.wedding-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(2.8rem, 8vw, 4rem);
+  color: var(--text-dark);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.ampersand {
+  font-style: italic;
+  color: var(--gold);
+}
+
+.wedding-subtitle {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 1rem;
+  color: var(--text-mid);
+  margin-top: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem auto;
+  max-width: 200px;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold-light), transparent);
+}
+
+.divider-heart {
+  color: var(--rose-dark);
+  font-size: 1rem;
+}
+
+/* ---------- Token Warning ---------- */
+.token-warning {
+  background: #fff8e1;
+  border: 1.5px solid var(--gold-light);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.2rem;
+  font-size: 0.85rem;
+  color: #7a6030;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+  display: none; /* Shown via JS if token missing */
+}
+
+.token-warning code {
+  background: rgba(201, 168, 76, 0.15);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+
+.token-warning.visible { display: block; }
+
+/* ---------- Upload Section ---------- */
+.upload-section {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  box-shadow:
+    0 8px 32px var(--shadow),
+    0 2px 8px rgba(201, 168, 76, 0.1);
+}
+
+/* ---------- Dropzone ---------- */
+.dropzone {
+  position: relative;
+  border: 2.5px dashed var(--gold-light);
+  border-radius: var(--radius-md);
+  padding: 2.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.25s, background 0.25s, transform 0.2s;
+  background: rgba(253, 248, 240, 0.6);
+}
+
+.dropzone:hover,
+.dropzone.drag-over {
+  border-color: var(--gold);
+  background: rgba(232, 212, 154, 0.18);
+  transform: scale(1.01);
+}
+
+.dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.camera-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.dropzone-main {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: var(--text-dark);
+  margin-bottom: 0.3rem;
+}
+
+.dropzone-sub {
+  font-size: 0.88rem;
+  color: var(--text-light);
+  margin-bottom: 0.5rem;
+}
+
+.dropzone-formats {
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  color: var(--gold-dark);
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+/* ---------- Preview Grid ---------- */
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.preview-item {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: var(--blush);
+  box-shadow: 0 2px 8px var(--shadow);
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.preview-item img,
+.preview-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preview-item .remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(58, 46, 46, 0.75);
+  color: white;
+  border: none;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.preview-item .remove-btn:hover { background: var(--rose-dark); }
+
+.preview-item .video-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- File Count ---------- */
+.file-count {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-mid);
+  margin-top: 0.6rem;
+  min-height: 1.2em;
+}
+
+/* ---------- Upload Button ---------- */
+.upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: var(--white);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  box-shadow: 0 4px 20px rgba(154, 122, 48, 0.4);
+}
+
+.upload-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(154, 122, 48, 0.5);
+}
+
+.upload-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.upload-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-icon { font-size: 1.4rem; }
+
+/* ---------- Progress ---------- */
+.progress-container {
+  margin-top: 1.25rem;
+  display: none;
+}
+
+.progress-container.visible { display: block; }
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: var(--blush);
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--rose) 0%, var(--gold) 100%);
+  border-radius: 50px;
+  transition: width 0.35s ease;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-mid);
+  margin-top: 0.5rem;
+}
+
+/* ---------- Success Screen ---------- */
+.success-screen {
+  display: none;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px var(--shadow);
+}
+
+.success-screen.visible { display: block; }
+
+.success-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+  animation: bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes bounce {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+.success-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.4rem;
+  font-weight: 300;
+  color: var(--text-dark);
+  margin-bottom: 0.75rem;
+}
+
+.success-msg {
+  font-size: 1rem;
+  color: var(--text-mid);
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+.upload-more-btn {
+  padding: 0.85rem 2rem;
+  background: transparent;
+  border: 2px solid var(--gold);
+  color: var(--gold-dark);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.upload-more-btn:hover {
+  background: var(--gold);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* ---------- Footer ---------- */
+.wedding-footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 1.5rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text-light);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 380px) {
+  .preview-grid { grid-template-columns: repeat(2, 1fr); }
+  .wedding-title { font-size: 2.4rem; }
+}
