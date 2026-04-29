@@ -320,7 +320,6 @@ async function chunkedUpload(file, dropboxPath, chunkSize, accessToken) {
 
     offset += chunkSize;
   }
-  }
 }
 
 // ─────────────────────────────────────────────────────
