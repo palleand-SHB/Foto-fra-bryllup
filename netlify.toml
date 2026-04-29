@@ -1,3 +1,3 @@
 [build]
-  command = "echo \"const DROPBOX_CONFIG = { token: '$DROPBOX_TOKEN', folder: '/Bryllup-Mette-og-Palle' };\" > config.js"
   publish = "."
+  functions = "netlify/functions"
