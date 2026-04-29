@@ -15,8 +15,15 @@ const DROPBOX_FOLDER = (typeof DROPBOX_CONFIG !== 'undefined') ? DROPBOX_CONFIG.
 //  HENT FRISKT TOKEN FRA NETLIFY
 // ─────────────────────────────────────────────────────
 async function fetchFreshToken() {
+  // Hvis vi tester lokalt, bruger vi token direkte fra config.js
+  if ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') &&
+      typeof DROPBOX_CONFIG !== 'undefined' && DROPBOX_CONFIG.token) {
+    console.log('Kører lokalt – bruger token fra config.js');
+    return DROPBOX_CONFIG.token;
+  }
+
   try {
-    // Vi prøver at kalde Netlify funktionen
+    // På Netlify kalder vi serverless funktionen
     const response = await fetch('/.netlify/functions/get-dropbox-token');
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Kunne ikke hente token');
