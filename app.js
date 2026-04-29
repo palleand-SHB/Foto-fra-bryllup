@@ -8,8 +8,25 @@
 
 // Token og mappe hentes fra config.js (ikke på GitHub)
 // Fallback til tomme strenge hvis config.js mangler
-const DROPBOX_ACCESS_TOKEN = (typeof DROPBOX_CONFIG !== 'undefined') ? DROPBOX_CONFIG.token : '';
-const DROPBOX_FOLDER       = (typeof DROPBOX_CONFIG !== 'undefined') ? DROPBOX_CONFIG.folder : '/Bryllup-Mette-og-Palle';
+// Token hentes nu dynamisk via Netlify Functions
+const DROPBOX_FOLDER = (typeof DROPBOX_CONFIG !== 'undefined') ? DROPBOX_CONFIG.folder : '/Bryllup-Mette-og-Palle';
+
+// ─────────────────────────────────────────────────────
+//  HENT FRISKT TOKEN FRA NETLIFY
+// ─────────────────────────────────────────────────────
+async function fetchFreshToken() {
+  try {
+    // Vi prøver at kalde Netlify funktionen
+    const response = await fetch('/.netlify/functions/get-dropbox-token');
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Kunne ikke hente token');
+    return data.access_token;
+  } catch (err) {
+    console.error('Token error:', err);
+    alert('⚠️ Der opstod en fejl ved forbindelse til Dropbox. Prøv igen.');
+    return null;
+  }
+}
 
 // ─────────────────────────────────────────────────────
 //  GLOBALS
@@ -37,11 +54,6 @@ const tokenWarning     = document.getElementById('tokenWarning');
 // ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   createPetals();
-
-  // Show token warning if not configured
-  if (!DROPBOX_ACCESS_TOKEN || DROPBOX_ACCESS_TOKEN === 'DIN_TOKEN_HER') {
-    tokenWarning.classList.add('visible');
-  }
 
   // File input change
   fileInput.addEventListener('change', (e) => {
@@ -160,14 +172,19 @@ function updateCount() {
 async function startUpload() {
   if (selectedFiles.length === 0) return;
 
-  if (!DROPBOX_ACCESS_TOKEN || DROPBOX_ACCESS_TOKEN === 'DIN_TOKEN_HER') {
-    alert('⚠️ Dropbox API-nøgle mangler!\n\nÅbn app.js og indsæt din token øverst i filen.');
-    return;
-  }
-
   // Disable button, show progress
   uploadBtn.disabled = true;
   progressContainer.classList.add('visible');
+  setProgress(0, 'Forbereder upload...');
+
+  // Hent et friskt token
+  const accessToken = await fetchFreshToken();
+  if (!accessToken) {
+    uploadBtn.disabled = false;
+    progressContainer.classList.remove('visible');
+    return;
+  }
+
   setProgress(0, `Uploader 0 af ${selectedFiles.length}...`);
 
   let uploaded = 0;
@@ -175,7 +192,7 @@ async function startUpload() {
 
   for (const file of selectedFiles) {
     try {
-      await uploadFileToDropbox(file);
+      await uploadFileToDropbox(file, accessToken);
       uploaded++;
       const pct = Math.round((uploaded / selectedFiles.length) * 100);
       setProgress(pct, `Uploader ${uploaded} af ${selectedFiles.length}...`);
@@ -198,8 +215,7 @@ async function startUpload() {
 // ─────────────────────────────────────────────────────
 //  DROPBOX API UPLOAD (single file)
 // ─────────────────────────────────────────────────────
-async function uploadFileToDropbox(file) {
-  // Create unique filename: timestamp_originalname
+async function uploadFileToDropbox(file, accessToken) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const dropboxPath = `${DROPBOX_FOLDER}/${timestamp}_${safeName}`;
@@ -207,12 +223,11 @@ async function uploadFileToDropbox(file) {
   const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB
 
   if (file.size <= CHUNK_SIZE) {
-    // Simple upload
     const arrayBuffer = await file.arrayBuffer();
     const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${DROPBOX_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/octet-stream',
         'Dropbox-API-Arg': JSON.stringify({
           path: dropboxPath,
@@ -229,15 +244,14 @@ async function uploadFileToDropbox(file) {
       throw new Error(`HTTP ${response.status}: ${errText}`);
     }
   } else {
-    // Chunked upload for large files
-    await chunkedUpload(file, dropboxPath, CHUNK_SIZE);
+    await chunkedUpload(file, dropboxPath, CHUNK_SIZE, accessToken);
   }
 }
 
 // ─────────────────────────────────────────────────────
 //  CHUNKED UPLOAD (store filer)
 // ─────────────────────────────────────────────────────
-async function chunkedUpload(file, dropboxPath, chunkSize) {
+async function chunkedUpload(file, dropboxPath, chunkSize, accessToken) {
   let offset = 0;
   let sessionId = null;
 
@@ -248,11 +262,10 @@ async function chunkedUpload(file, dropboxPath, chunkSize) {
     const isLast  = offset + chunkSize >= file.size;
 
     if (isFirst) {
-      // Start session
       const res = await fetch('https://content.dropboxapi.com/2/files/upload_session/start', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${DROPBOX_ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/octet-stream',
           'Dropbox-API-Arg': JSON.stringify({ close: false }),
         },
@@ -263,11 +276,10 @@ async function chunkedUpload(file, dropboxPath, chunkSize) {
       sessionId = data.session_id;
 
     } else if (isLast) {
-      // Finish session
       const res = await fetch('https://content.dropboxapi.com/2/files/upload_session/finish', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${DROPBOX_ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/octet-stream',
           'Dropbox-API-Arg': JSON.stringify({
             cursor: { session_id: sessionId, offset },
@@ -284,11 +296,10 @@ async function chunkedUpload(file, dropboxPath, chunkSize) {
       if (!res.ok) throw new Error(`Session finish fejl: HTTP ${res.status}`);
 
     } else {
-      // Append
       const res = await fetch('https://content.dropboxapi.com/2/files/upload_session/append_v2', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${DROPBOX_ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/octet-stream',
           'Dropbox-API-Arg': JSON.stringify({
             cursor: { session_id: sessionId, offset },
@@ -301,6 +312,7 @@ async function chunkedUpload(file, dropboxPath, chunkSize) {
     }
 
     offset += chunkSize;
+  }
   }
 }
 
