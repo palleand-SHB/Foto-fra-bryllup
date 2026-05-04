@@ -95,7 +95,11 @@ exports.handler = async function(event, context) {
     };
 
     // 4. Hent midlertidigt link for hvert billede (parallelt)
-    const photoPromises = files.map(async (file) => {
+    // Vi begrænser det til de 50 nyeste for at undgå timeout/throttling
+    const filesToFetch = files.slice(0, 50);
+    const photoErrors = [];
+
+    const photoPromises = filesToFetch.map(async (file) => {
       try {
         const linkRes = await fetch('https://api.dropboxapi.com/2/files/get_temporary_link', {
           method: 'POST',
@@ -106,7 +110,11 @@ exports.handler = async function(event, context) {
           body: JSON.stringify({ path: file.path_lower })
         });
 
-        if (!linkRes.ok) return null;
+        if (!linkRes.ok) {
+          const errText = await linkRes.text();
+          photoErrors.push({ name: file.name, error: errText, status: linkRes.status });
+          return null;
+        }
         const linkData = await linkRes.json();
 
         return {
@@ -114,12 +122,17 @@ exports.handler = async function(event, context) {
           url:  linkData.link,
           modified: file.server_modified
         };
-      } catch {
+      } catch (err) {
+        photoErrors.push({ name: file.name, error: err.message });
         return null;
       }
     });
 
     const photos = (await Promise.all(photoPromises)).filter(Boolean);
+
+    // Opdater debug info
+    debugInfo.fetchErrors = photoErrors.slice(0, 5); // Kun de første par stykker for ikke at fylde for meget
+    debugInfo.actualPhotoCount = photos.length;
 
     return {
       statusCode: 200,
