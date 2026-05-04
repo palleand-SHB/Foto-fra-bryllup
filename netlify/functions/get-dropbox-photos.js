@@ -2,7 +2,7 @@
 // Serverless function der henter billedlisten fra Dropbox og returnerer midlertidige links.
 // Løser CORS-problemet: Dropbox's API tillader ikke direkte browser-kald til list_folder.
 
-const DROPBOX_FOLDER = process.env.DROPBOX_FOLDER || '/Bryllup-Mette-og-Palle';
+const DROPBOX_FOLDER = '/Bryllup-Mette-og-Palle';
 
 exports.handler = async function(event, context) {
   const headers = {
@@ -81,9 +81,18 @@ exports.handler = async function(event, context) {
     const listData = await listRes.json();
 
     // 3. Filtrer til billeder og videoer, nyeste øverst
-    const files = listData.entries
+    const allEntries = listData.entries;
+    const files = allEntries
       .filter(e => e['.tag'] === 'file' && /\.(jpg|jpeg|png|heic|gif|mov|mp4)$/i.test(e.name))
       .sort((a, b) => b.server_modified.localeCompare(a.server_modified));
+
+    // Debug: gem info om hvad der faktisk er i mappen
+    const debugInfo = {
+      folder: DROPBOX_FOLDER,
+      totalEntries: allEntries.length,
+      allNames: allEntries.map(e => e.name),
+      filteredCount: files.length
+    };
 
     // 4. Hent midlertidigt link for hvert billede (parallelt)
     const photoPromises = files.map(async (file) => {
@@ -115,7 +124,7 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ photos })
+      body: JSON.stringify({ photos, debug: debugInfo })
     };
 
   } catch (error) {
