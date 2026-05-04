@@ -33,9 +33,9 @@
     <!-- Upload Area -->
     <section class="upload-section" id="uploadSection">
 
-      <!-- Token warning (shown if not configured) -->
+      <!-- Connection error (hidden by default) -->
       <div class="token-warning" id="tokenWarning">
-        ⚙️ <strong>Opsætning mangler:</strong> Indsæt din Dropbox API-nøgle i <code>app.js</code> (øverst i filen).
+        ⚠️ <strong>Forbindelsesfejl:</strong> Kunne ikke oprette forbindelse til Dropbox. Prøv venligst at genindlæse siden.
       </div>
 
       <!-- Drop zone -->
@@ -60,11 +60,25 @@
       <!-- File count -->
       <p class="file-count" id="fileCount"></p>
 
+      <!-- Uploader name -->
+      <div class="name-field">
+        <label for="uploaderName" class="name-label">Dit navn (valgfrit)</label>
+        <input type="text" id="uploaderName" class="name-input" maxlength="50" autocomplete="name" />
+      </div>
+
       <!-- Upload button -->
       <button class="upload-btn" id="uploadBtn" disabled>
         <span class="btn-icon">🥂</span>
         <span class="btn-text">Send til bryllupsgalleriet</span>
       </button>
+
+      <!-- View Album link -->
+      <div class="album-link-container">
+        <a href="album.html" class="album-link">
+          <span>Se det fælles album</span>
+          <span class="arrow">→</span>
+        </a>
+      </div>
 
       <!-- Progress bar -->
       <div class="progress-container" id="progressContainer">
@@ -81,6 +95,10 @@
       <div class="success-icon">🎊</div>
       <h2 class="success-title">Tusind tak!</h2>
       <p class="success-msg">Dine billeder er nu en del af vores bryllupsalbum.<br/>Vi glæder os til at se dem! 💛</p>
+      <a href="album.html" class="upload-btn" style="text-decoration:none; margin-bottom: 0.75rem; display:flex;">
+        <span class="btn-icon">🖼️</span>
+        <span class="btn-text">Se bryllupsalbummet</span>
+      </a>
       <button class="upload-more-btn" id="uploadMoreBtn">Upload flere billeder</button>
     </section>
 

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bryllupsalbum – Mette &amp; Palle 💍</title>
+  <meta name="description" content="Se alle bryllupsbilleder og videoer fra Mette &amp; Palles store dag – 6. juni 2026" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="album.css" />
+</head>
+<body>
+
+  <!-- Floating petals background -->
+  <div class="petals-container" id="petalsContainer"></div>
+
+  <main class="app-container album-page">
+
+    <!-- Tilbage-link -->
+    <nav class="album-back-nav">
+      <a href="index.html" class="album-back-link">
+        <span>←</span>
+        <span>Tilbage til upload</span>
+      </a>
+    </nav>
+
+    <!-- Header -->
+    <header class="wedding-header">
+      <div class="rings-icon">🖼️</div>
+      <p class="wedding-date">6. juni 2026</p>
+      <h1 class="wedding-title">Fælles Album</h1>
+      <p class="wedding-subtitle">Se alle de gode minder fra vores store dag</p>
+      <div class="divider">
+        <span class="divider-line"></span>
+        <span class="divider-heart">♥</span>
+        <span class="divider-line"></span>
+      </div>
+    </header>
+
+    <!-- Galleri-sektion -->
+    <section class="upload-section" id="albumSection">
+
+      <!-- Loading -->
+      <div id="loadingState" class="album-status">
+        <p>Henter de nyeste billeder... 🌸</p>
+      </div>
+
+      <!-- Tom -->
+      <div id="emptyState" class="album-status" style="display:none;">
+        <p>Ingen billeder endnu – vær den første til at uploade! 📷</p>
+        <a href="index.html" class="upload-more-btn" style="display:inline-block; margin-top:1rem; text-decoration:none;">Upload billeder</a>
+      </div>
+
+      <!-- Fejl -->
+      <div id="errorState" class="album-status" style="display:none;">
+        <p>⚠️ Kunne ikke hente billederne. Prøv at genindlæse siden.</p>
+      </div>
+
+      <!-- Galleri-gitter -->
+      <div class="gallery-grid" id="galleryGrid"></div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="wedding-footer">
+    <p>Mette &amp; Palle ♥ 6. juni 2026</p>
+  </footer>
+
+  <!-- Fuldskærms-modal -->
+  <div id="imageModal" class="photo-modal">
+    <button id="closeModal" class="modal-close" aria-label="Luk">&times;</button>
+    <div class="modal-inner">
+      <img src="" alt="Billede i fuld størrelse" id="modalImg" class="modal-img" />
+      <p id="modalCredit" class="modal-credit"></p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="album.js"></script>
+</body>
+</html>

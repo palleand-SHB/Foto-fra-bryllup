@@ -16,14 +16,21 @@ const DROPBOX_FOLDER = (typeof DROPBOX_CONFIG !== 'undefined') ? DROPBOX_CONFIG.
 // ─────────────────────────────────────────────────────
 async function fetchFreshToken() {
   try {
-    // Vi henter friskt token fra den live Netlify-server
+    // Vi henter friskt token fra Netlify-serveren. 
+    // Vi bruger den fulde URL så det også virker når du tester lokalt uden 'netlify dev'.
     const response = await fetch('https://bryllupsfotos.netlify.app/.netlify/functions/get-dropbox-token');
+    
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Kunne ikke hente token');
+    }
+    
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Kunne ikke hente token');
+    tokenWarning.classList.remove('visible'); // Skjul advarsel hvis det lykkes
     return data.access_token;
   } catch (err) {
     console.error('Token error:', err);
-    alert('⚠️ Der opstod en fejl ved forbindelse til Dropbox. Prøv igen.');
+    tokenWarning.classList.add('visible'); // Vis advarsel i UI
     return null;
   }
 }
@@ -41,6 +48,7 @@ const fileInput        = document.getElementById('fileInput');
 const previewGrid      = document.getElementById('previewGrid');
 const fileCount        = document.getElementById('fileCount');
 const uploadBtn        = document.getElementById('uploadBtn');
+const uploaderName     = document.getElementById('uploaderName');
 const progressContainer = document.getElementById('progressContainer');
 const progressFill     = document.getElementById('progressFill');
 const progressText     = document.getElementById('progressText');
@@ -182,6 +190,7 @@ async function startUpload() {
   if (!accessToken) {
     uploadBtn.disabled = false;
     progressContainer.classList.remove('visible');
+    // Vi viser ikke en alert her, da fetchFreshToken nu viser advarslen direkte i UI
     return;
   }
 
@@ -218,7 +227,10 @@ async function startUpload() {
 async function uploadFileToDropbox(file, accessToken) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const dropboxPath = `${DROPBOX_FOLDER}/${timestamp}_${safeName}`;
+  // Inklér uploaderens navn i filnavnet så det er synligt i albummet
+  const nameRaw = uploaderName ? uploaderName.value.trim() : '';
+  const safePerson = nameRaw ? nameRaw.replace(/[^a-zA-Z0-9æøåÆØÅ _-]/g, '').replace(/\s+/g, '_').substring(0, 30) : 'Gaest';
+  const dropboxPath = `${DROPBOX_FOLDER}/${timestamp}_${safePerson}_${safeName}`;
 
   const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB
 
@@ -341,6 +353,7 @@ function resetUI() {
   successScreen.classList.remove('visible');
   uploadSection.style.display = 'block';
   fileInput.value = '';
+  if (uploaderName) uploaderName.value = '';
 }
 
 // ─────────────────────────────────────────────────────

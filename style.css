@@ -343,6 +343,77 @@ body {
 }
 
 .btn-icon { font-size: 1.4rem; }
+/* ---------- Album Link ---------- */
+.album-link-container {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.album-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gold-dark);
+  text-decoration: none;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.album-link:hover {
+  opacity: 0.8;
+  transform: translateX(4px);
+}
+
+.album-link .arrow {
+  transition: transform 0.2s;
+}
+
+.album-link:hover .arrow {
+  transform: translateX(2px);
+}
+
+/* ---------- Name Field ---------- */
+.name-field {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(201, 168, 76, 0.2);
+  text-align: center;
+}
+
+.name-label {
+  display: block;
+  font-family: 'Lato', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 0.6rem;
+}
+
+.name-input {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.45rem 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--gold-light);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-style: italic;
+  color: var(--text-dark);
+  text-align: center;
+  outline: none;
+  transition: border-color 0.25s;
+}
+
+.name-input:focus {
+  border-bottom-color: var(--gold);
+}
 
 /* ---------- Progress ---------- */
 .progress-container {
