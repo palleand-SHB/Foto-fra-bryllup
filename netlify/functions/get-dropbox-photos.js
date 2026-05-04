@@ -137,7 +137,11 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ photos, debug: debugInfo })
+      body: JSON.stringify({ 
+        photos, 
+        debug: debugInfo,
+        error: photos.length === 0 && photoErrors.length > 0 ? photoErrors[0].error : null 
+      })
     };
 
   } catch (error) {
