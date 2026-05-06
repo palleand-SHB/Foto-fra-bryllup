@@ -5,6 +5,10 @@
 
 const NETLIFY_PHOTOS_URL = 'https://bryllupsfotos.netlify.app/.netlify/functions/get-dropbox-photos';
 
+// Globale variable til at styre albummet
+let allPhotos = [];
+let currentIndex = -1;
+
 // ─────────────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────────────
@@ -18,9 +22,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === document.getElementById('imageModal')) closeModal();
   });
 
-  // Tastatur: Esc lukker modal
+  // Navigationsknapper
+  document.getElementById('prevBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    showPrev();
+  });
+  document.getElementById('nextBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    showNext();
+  });
+
+  // Tastatur: Navigering
   document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('imageModal').classList.contains('active')) return;
+    
     if (e.key === 'Escape') closeModal();
+    if (e.key === 'ArrowLeft') showPrev();
+    if (e.key === 'ArrowRight') showNext();
   });
 });
 
@@ -34,7 +52,6 @@ async function loadAlbum() {
   const errorMsg = document.getElementById('errorState');
 
   try {
-    // Hent alle billeder fra Netlify Function (server-side, ingen CORS-problem)
     const res = await fetch(NETLIFY_PHOTOS_URL);
 
     if (!res.ok) {
@@ -43,20 +60,20 @@ async function loadAlbum() {
     }
 
     const data = await res.json();
-    const photos = data.photos || [];
+    allPhotos = data.photos || [];
 
     loading.style.display = 'none';
 
-    if (photos.length === 0) {
+    if (allPhotos.length === 0) {
       empty.style.display = 'block';
       return;
     }
 
     // Vis hvert billede/video
-    for (const photo of photos) {
-      const item = buildGalleryItem(photo);
+    allPhotos.forEach((photo, index) => {
+      const item = buildGalleryItem(photo, index);
       grid.appendChild(item);
-    }
+    });
 
   } catch (err) {
     console.error('Album fejl:', err);
@@ -68,14 +85,13 @@ async function loadAlbum() {
 // ─────────────────────────────────────────────────────
 //  BYGG ET GALLERI-ELEMENT
 // ─────────────────────────────────────────────────────
-function buildGalleryItem(photo) {
+function buildGalleryItem(photo, index) {
   const item = document.createElement('div');
   item.className = 'gallery-item';
 
   const isVideo = /\.(mov|mp4)$/i.test(photo.name);
 
   // Udled uploaderens navn fra filnavnet
-  // Format: timestamp_Navn_originalfilnavn.ext
   const parts = photo.name.split('_');
   const uploaderLabel = parts.length >= 3
     ? parts[1].replace(/-/g, ' ')
@@ -91,6 +107,8 @@ function buildGalleryItem(photo) {
 
     item.addEventListener('mouseenter', () => video.play());
     item.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
+    
+    // Videoer åbner stadig i nyt vindue ved klik på selve kortet
     item.addEventListener('click', () => window.open(photo.url, '_blank'));
 
     const badge = document.createElement('span');
@@ -104,10 +122,9 @@ function buildGalleryItem(photo) {
     img.loading = 'lazy';
     item.appendChild(img);
 
-    item.addEventListener('click', () => openModal(photo.url, uploaderLabel));
+    item.addEventListener('click', () => openModal(index));
   }
 
-  // Uploaderens navn-label
   const label = document.createElement('div');
   label.className = 'gallery-uploader';
   label.textContent = uploaderLabel;
@@ -117,16 +134,62 @@ function buildGalleryItem(photo) {
 }
 
 // ─────────────────────────────────────────────────────
-//  MODAL (FULDSKÆRM BILLEDE)
+//  MODAL LOGIK
 // ─────────────────────────────────────────────────────
-function openModal(url, uploaderLabel) {
-  const modal  = document.getElementById('imageModal');
-  const img    = document.getElementById('modalImg');
-  const credit = document.getElementById('modalCredit');
-  img.src = url;
-  if (credit) credit.textContent = uploaderLabel ? `📷 ${uploaderLabel}` : '';
+function openModal(index) {
+  currentIndex = index;
+  updateModalContent();
+  
+  const modal = document.getElementById('imageModal');
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
+}
+
+function updateModalContent() {
+  const photo = allPhotos[currentIndex];
+  const img = document.getElementById('modalImg');
+  const credit = document.getElementById('modalCredit');
+  
+  // Udled navn
+  const parts = photo.name.split('_');
+  const uploaderLabel = parts.length >= 3 ? parts[1].replace(/-/g, ' ') : 'Gæst';
+
+  img.style.opacity = '0';
+  img.src = photo.url;
+  
+  img.onload = () => {
+    img.style.opacity = '1';
+  };
+  
+  if (credit) credit.textContent = uploaderLabel ? `📷 ${uploaderLabel}` : '';
+  
+  // Opdater synlighed af knapper (hvis man er i start/slut)
+  document.getElementById('prevBtn').style.display = currentIndex > 0 ? 'flex' : 'none';
+  document.getElementById('nextBtn').style.display = currentIndex < allPhotos.length - 1 ? 'flex' : 'none';
+}
+
+function showNext() {
+  if (currentIndex < allPhotos.length - 1) {
+    currentIndex++;
+    // Hvis det næste er en video, så spring den over (da modal kun er til billeder)
+    if (/\.(mov|mp4)$/i.test(allPhotos[currentIndex].name)) {
+      showNext();
+    } else {
+      updateModalContent();
+    }
+  }
+}
+
+function showPrev() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    // Hvis det forrige er en video, så spring den over
+    if (/\.(mov|mp4)$/i.test(allPhotos[currentIndex].name)) {
+      showPrev();
+    } else {
+      updateModalContent();
+    }
+  }
 }
 
 function closeModal() {

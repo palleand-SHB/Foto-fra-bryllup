@@ -81,23 +81,13 @@ exports.handler = async function(event, context) {
     const listData = await listRes.json();
 
     // 3. Filtrer til billeder og videoer, nyeste øverst
-    const allEntries = listData.entries;
-    const files = allEntries
+    const files = listData.entries
       .filter(e => e['.tag'] === 'file' && /\.(jpg|jpeg|png|heic|gif|mov|mp4)$/i.test(e.name))
       .sort((a, b) => b.server_modified.localeCompare(a.server_modified));
 
-    // Debug: gem info om hvad der faktisk er i mappen
-    const debugInfo = {
-      folder: DROPBOX_FOLDER,
-      totalEntries: allEntries.length,
-      allNames: allEntries.map(e => e.name),
-      filteredCount: files.length
-    };
-
     // 4. Hent midlertidigt link for hvert billede (parallelt)
-    // Vi begrænser det til de 50 nyeste for at undgå timeout/throttling
-    const filesToFetch = files.slice(0, 50);
-    const photoErrors = [];
+    // Vi begrænser det til de 100 nyeste for at undgå timeout
+    const filesToFetch = files.slice(0, 100);
 
     const photoPromises = filesToFetch.map(async (file) => {
       try {
@@ -110,11 +100,7 @@ exports.handler = async function(event, context) {
           body: JSON.stringify({ path: file.path_lower })
         });
 
-        if (!linkRes.ok) {
-          const errText = await linkRes.text();
-          photoErrors.push({ name: file.name, error: errText, status: linkRes.status });
-          return null;
-        }
+        if (!linkRes.ok) return null;
         const linkData = await linkRes.json();
 
         return {
@@ -122,26 +108,17 @@ exports.handler = async function(event, context) {
           url:  linkData.link,
           modified: file.server_modified
         };
-      } catch (err) {
-        photoErrors.push({ name: file.name, error: err.message });
+      } catch {
         return null;
       }
     });
 
     const photos = (await Promise.all(photoPromises)).filter(Boolean);
 
-    // Opdater debug info
-    debugInfo.fetchErrors = photoErrors.slice(0, 5); // Kun de første par stykker for ikke at fylde for meget
-    debugInfo.actualPhotoCount = photos.length;
-
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
-        photos, 
-        debug: debugInfo,
-        error: photos.length === 0 && photoErrors.length > 0 ? photoErrors[0].error : null 
-      })
+      body: JSON.stringify({ photos })
     };
 
   } catch (error) {
