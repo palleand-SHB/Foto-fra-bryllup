@@ -112,34 +112,40 @@ exports.handler = async function(event, context) {
       .filter(e => e['.tag'] === 'file' && /\.(jpg|jpeg|png|heic|gif|mov|mp4)$/i.test(e.name))
       .sort((a, b) => b.server_modified.localeCompare(a.server_modified));
 
-    // 4. Hent midlertidigt link for hvert billede (parallelt)
-    const filesToFetch = files;
+    // 4. Hent midlertidigt link for hvert billede i batches af 20
+    //    (undgår Dropbox rate-limit og Netlify timeout ved mange billeder)
+    const BATCH_SIZE = 20;
+    const photos = [];
 
-    const photoPromises = filesToFetch.map(async (file) => {
-      try {
-        const linkRes = await fetch('https://api.dropboxapi.com/2/files/get_temporary_link', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ path: file.path_lower })
-        });
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
 
-        if (!linkRes.ok) return null;
-        const linkData = await linkRes.json();
+      const batchResults = await Promise.all(batch.map(async (file) => {
+        try {
+          const linkRes = await fetch('https://api.dropboxapi.com/2/files/get_temporary_link', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ path: file.path_lower })
+          });
 
-        return {
-          name: file.name,
-          url:  linkData.link,
-          modified: file.server_modified
-        };
-      } catch {
-        return null;
-      }
-    });
+          if (!linkRes.ok) return null;
+          const linkData = await linkRes.json();
 
-    const photos = (await Promise.all(photoPromises)).filter(Boolean);
+          return {
+            name: file.name,
+            url:  linkData.link,
+            modified: file.server_modified
+          };
+        } catch {
+          return null;
+        }
+      }));
+
+      photos.push(...batchResults.filter(Boolean));
+    }
 
     return {
       statusCode: 200,

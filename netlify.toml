@@ -2,3 +2,9 @@
   command = "echo 'Building static site'"
   publish = "."
   functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions."get-dropbox-photos"]
+  timeout = 26
