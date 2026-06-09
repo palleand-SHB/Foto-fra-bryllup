@@ -54,7 +54,12 @@ exports.handler = async function(event, context) {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Hent filliste fra Dropbox
+    // 2. Hent filliste fra Dropbox (med paginering og rekursion i undermapper)
+    let allEntries = [];
+    let hasMore = true;
+    let cursor = null;
+
+    // Første kald
     const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
       method: 'POST',
       headers: {
@@ -63,9 +68,9 @@ exports.handler = async function(event, context) {
       },
       body: JSON.stringify({
         path: DROPBOX_FOLDER,
-        recursive: false,
+        recursive: true,
         include_media_info: false,
-        limit: 200
+        limit: 2000
       })
     });
 
@@ -79,15 +84,36 @@ exports.handler = async function(event, context) {
     }
 
     const listData = await listRes.json();
+    allEntries = allEntries.concat(listData.entries);
+    hasMore = listData.has_more;
+    cursor = listData.cursor;
+
+    // Fortsæt paginering hvis der er flere sider
+    while (hasMore && cursor) {
+      const contRes = await fetch('https://api.dropboxapi.com/2/files/list_folder/continue', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cursor })
+      });
+
+      if (!contRes.ok) break;
+
+      const contData = await contRes.json();
+      allEntries = allEntries.concat(contData.entries);
+      hasMore = contData.has_more;
+      cursor = contData.cursor;
+    }
 
     // 3. Filtrer til billeder og videoer, nyeste øverst
-    const files = listData.entries
+    const files = allEntries
       .filter(e => e['.tag'] === 'file' && /\.(jpg|jpeg|png|heic|gif|mov|mp4)$/i.test(e.name))
       .sort((a, b) => b.server_modified.localeCompare(a.server_modified));
 
     // 4. Hent midlertidigt link for hvert billede (parallelt)
-    // Vi begrænser det til de 100 nyeste for at undgå timeout
-    const filesToFetch = files.slice(0, 100);
+    const filesToFetch = files;
 
     const photoPromises = filesToFetch.map(async (file) => {
       try {
