@@ -44,8 +44,11 @@
 
       <!-- Loading -->
       <div id="loadingState" class="album-status">
-        <p>Henter de nyeste billeder... 🌸</p>
+        <p>Henter billeder... 🌸</p>
       </div>
+
+      <!-- Billedtæller -->
+      <p id="photoCount" class="photo-count"></p>
 
       <!-- Tom -->
       <div id="emptyState" class="album-status" style="display:none;">
@@ -60,6 +63,14 @@
 
       <!-- Galleri-gitter -->
       <div class="gallery-grid" id="galleryGrid"></div>
+
+      <!-- Indlæser flere (infinite scroll spinner) -->
+      <div id="loadingMore" class="album-status" style="display:none;">
+        <p>Indlæser flere billeder... 🌸</p>
+      </div>
+
+      <!-- Sentinel: trigger for IntersectionObserver -->
+      <div id="scrollSentinel" style="height:1px;"></div>
 
     </section>
 

@@ -1,12 +1,16 @@
 /* =====================================================
    METTE & PALLE – BRYLLUPSAPP
-   album.js – Hent og vis fotos fra Dropbox (via Netlify)
+   album.js – Hent og vis fotos fra Dropbox med paginering og infinite scroll
    ===================================================== */
 
 const NETLIFY_PHOTOS_URL = 'https://bryllupsfotos.netlify.app/.netlify/functions/get-dropbox-photos';
+const PAGE_SIZE = 30;
 
-// Globale variable til at styre albummet
-let allPhotos = [];
+// Globale variable
+let allPhotos  = [];
+let currentPage = 0;
+let isLoading  = false;
+let hasMore    = true;
 let currentIndex = -1;
 
 // ─────────────────────────────────────────────────────
@@ -14,7 +18,7 @@ let currentIndex = -1;
 // ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   createPetals();
-  loadAlbum();
+  loadNextPage();
 
   // Modal luk-knap
   document.getElementById('closeModal').addEventListener('click', closeModal);
@@ -35,51 +39,91 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tastatur: Navigering
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('imageModal').classList.contains('active')) return;
-    
-    if (e.key === 'Escape') closeModal();
-    if (e.key === 'ArrowLeft') showPrev();
+    if (e.key === 'Escape')     closeModal();
+    if (e.key === 'ArrowLeft')  showPrev();
     if (e.key === 'ArrowRight') showNext();
   });
+
+  // IntersectionObserver til infinite scroll
+  const sentinel = document.getElementById('scrollSentinel');
+  if (sentinel) {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isLoading && hasMore) {
+        loadNextPage();
+      }
+    }, { rootMargin: '300px' });
+    observer.observe(sentinel);
+  }
 });
 
 // ─────────────────────────────────────────────────────
-//  INDLÆS ALBUM
+//  INDLÆS NÆSTE SIDE
 // ─────────────────────────────────────────────────────
-async function loadAlbum() {
-  const grid     = document.getElementById('galleryGrid');
-  const loading  = document.getElementById('loadingState');
-  const empty    = document.getElementById('emptyState');
-  const errorMsg = document.getElementById('errorState');
+async function loadNextPage() {
+  if (isLoading || !hasMore) return;
+  isLoading = true;
+
+  const grid       = document.getElementById('galleryGrid');
+  const loading    = document.getElementById('loadingState');
+  const empty      = document.getElementById('emptyState');
+  const errorMsg   = document.getElementById('errorState');
+  const loadingMore = document.getElementById('loadingMore');
+  const photoCount = document.getElementById('photoCount');
+
+  if (currentPage === 0) {
+    loading.style.display = 'block';
+  } else if (loadingMore) {
+    loadingMore.style.display = 'block';
+  }
 
   try {
-    const res = await fetch(NETLIFY_PHOTOS_URL);
+    const offset = currentPage * PAGE_SIZE;
+    const res = await fetch(`${NETLIFY_PHOTOS_URL}?offset=${offset}&limit=${PAGE_SIZE}`);
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || `HTTP ${res.status}`);
     }
 
-    const data = await res.json();
-    allPhotos = data.photos || [];
+    const data      = await res.json();
+    const newPhotos = data.photos || [];
+    hasMore         = data.hasMore || false;
+    const total     = data.total  || 0;
 
     loading.style.display = 'none';
+    if (loadingMore) loadingMore.style.display = 'none';
 
-    if (allPhotos.length === 0) {
+    if (currentPage === 0 && newPhotos.length === 0) {
       empty.style.display = 'block';
+      isLoading = false;
       return;
     }
 
-    // Vis hvert billede/video
-    allPhotos.forEach((photo, index) => {
-      const item = buildGalleryItem(photo, index);
+    const startIndex = allPhotos.length;
+    allPhotos = allPhotos.concat(newPhotos);
+
+    newPhotos.forEach((photo, i) => {
+      const item = buildGalleryItem(photo, startIndex + i);
       grid.appendChild(item);
     });
+
+    currentPage++;
+
+    // Opdater billedtæller
+    if (photoCount) {
+      photoCount.textContent = hasMore
+        ? `Viser ${allPhotos.length} af ${total} billeder`
+        : `${allPhotos.length} billeder i alt`;
+    }
 
   } catch (err) {
     console.error('Album fejl:', err);
     loading.style.display = 'none';
-    errorMsg.style.display = 'block';
+    if (loadingMore) loadingMore.style.display = 'none';
+    if (currentPage === 0) errorMsg.style.display = 'block';
   }
+
+  isLoading = false;
 }
 
 // ─────────────────────────────────────────────────────
@@ -107,8 +151,6 @@ function buildGalleryItem(photo, index) {
 
     item.addEventListener('mouseenter', () => video.play());
     item.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
-    
-    // Videoer åbner stadig i nyt vindue ved klik på selve kortet
     item.addEventListener('click', () => window.open(photo.url, '_blank'));
 
     const badge = document.createElement('span');
@@ -139,31 +181,25 @@ function buildGalleryItem(photo, index) {
 function openModal(index) {
   currentIndex = index;
   updateModalContent();
-  
   const modal = document.getElementById('imageModal');
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
 function updateModalContent() {
-  const photo = allPhotos[currentIndex];
-  const img = document.getElementById('modalImg');
+  const photo  = allPhotos[currentIndex];
+  const img    = document.getElementById('modalImg');
   const credit = document.getElementById('modalCredit');
-  
-  // Udled navn
+
   const parts = photo.name.split('_');
   const uploaderLabel = parts.length >= 3 ? parts[1].replace(/-/g, ' ') : 'Gæst';
 
   img.style.opacity = '0';
   img.src = photo.url;
-  
-  img.onload = () => {
-    img.style.opacity = '1';
-  };
-  
+  img.onload = () => { img.style.opacity = '1'; };
+
   if (credit) credit.textContent = uploaderLabel ? `📷 ${uploaderLabel}` : '';
-  
-  // Opdater synlighed af knapper (hvis man er i start/slut)
+
   document.getElementById('prevBtn').style.display = currentIndex > 0 ? 'flex' : 'none';
   document.getElementById('nextBtn').style.display = currentIndex < allPhotos.length - 1 ? 'flex' : 'none';
 }
@@ -171,7 +207,6 @@ function updateModalContent() {
 function showNext() {
   if (currentIndex < allPhotos.length - 1) {
     currentIndex++;
-    // Hvis det næste er en video, så spring den over (da modal kun er til billeder)
     if (/\.(mov|mp4)$/i.test(allPhotos[currentIndex].name)) {
       showNext();
     } else {
@@ -183,7 +218,6 @@ function showNext() {
 function showPrev() {
   if (currentIndex > 0) {
     currentIndex--;
-    // Hvis det forrige er en video, så spring den over
     if (/\.(mov|mp4)$/i.test(allPhotos[currentIndex].name)) {
       showPrev();
     } else {

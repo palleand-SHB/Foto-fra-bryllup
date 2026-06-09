@@ -1,6 +1,6 @@
 // netlify/functions/get-dropbox-photos.js
 // Serverless function der henter billedlisten fra Dropbox og returnerer midlertidige links.
-// Løser CORS-problemet: Dropbox's API tillader ikke direkte browser-kald til list_folder.
+// Understøtter paginering via ?offset=0&limit=30 så vi altid er indenfor Netlify's timeout.
 
 const DROPBOX_FOLDER = '/Bryllup-Mette-og-Palle';
 
@@ -16,7 +16,6 @@ exports.handler = async function(event, context) {
     return { statusCode: 200, headers, body: '' };
   }
 
-  // Hent hemmeligheder fra environment variables
   const clientId     = process.env.DROPBOX_CLIENT_ID;
   const clientSecret = process.env.DROPBOX_CLIENT_SECRET;
   const refreshToken = process.env.DROPBOX_REFRESH_TOKEN;
@@ -28,6 +27,11 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ error: 'Miljøvariable mangler på Netlify.' })
     };
   }
+
+  // Paginerings-parametre
+  const qs     = event.queryStringParameters || {};
+  const offset = Math.max(0, parseInt(qs.offset || '0', 10));
+  const limit  = Math.min(50, Math.max(1, parseInt(qs.limit || '30', 10)));
 
   try {
     // 1. Hent access token via refresh token
@@ -54,12 +58,11 @@ exports.handler = async function(event, context) {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Hent filliste fra Dropbox (med paginering og rekursion i undermapper)
+    // 2. Hent ALLE fil-metadata (rekursivt, med paginering)
     let allEntries = [];
-    let hasMore = true;
+    let hasMoreFiles = true;
     let cursor = null;
 
-    // Første kald
     const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
       method: 'POST',
       headers: {
@@ -84,12 +87,11 @@ exports.handler = async function(event, context) {
     }
 
     const listData = await listRes.json();
-    allEntries = allEntries.concat(listData.entries);
-    hasMore = listData.has_more;
+    allEntries = listData.entries;
+    hasMoreFiles = listData.has_more;
     cursor = listData.cursor;
 
-    // Fortsæt paginering hvis der er flere sider
-    while (hasMore && cursor) {
+    while (hasMoreFiles && cursor) {
       const contRes = await fetch('https://api.dropboxapi.com/2/files/list_folder/continue', {
         method: 'POST',
         headers: {
@@ -103,7 +105,7 @@ exports.handler = async function(event, context) {
 
       const contData = await contRes.json();
       allEntries = allEntries.concat(contData.entries);
-      hasMore = contData.has_more;
+      hasMoreFiles = contData.has_more;
       cursor = contData.cursor;
     }
 
@@ -112,45 +114,44 @@ exports.handler = async function(event, context) {
       .filter(e => e['.tag'] === 'file' && /\.(jpg|jpeg|png|heic|gif|mov|mp4)$/i.test(e.name))
       .sort((a, b) => b.server_modified.localeCompare(a.server_modified));
 
-    // 4. Hent midlertidigt link for hvert billede i batches af 20
-    //    (undgår Dropbox rate-limit og Netlify timeout ved mange billeder)
-    const BATCH_SIZE = 20;
-    const photos = [];
+    const total = files.length;
 
-    for (let i = 0; i < files.length; i += BATCH_SIZE) {
-      const batch = files.slice(i, i + BATCH_SIZE);
+    // 4. Tag kun den ønskede side
+    const pageFiles = files.slice(offset, offset + limit);
 
-      const batchResults = await Promise.all(batch.map(async (file) => {
-        try {
-          const linkRes = await fetch('https://api.dropboxapi.com/2/files/get_temporary_link', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ path: file.path_lower })
-          });
+    // 5. Hent midlertidigt link KUN for denne sides billeder (parallelt – lille batch)
+    const photos = (await Promise.all(pageFiles.map(async (file) => {
+      try {
+        const linkRes = await fetch('https://api.dropboxapi.com/2/files/get_temporary_link', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ path: file.path_lower })
+        });
 
-          if (!linkRes.ok) return null;
-          const linkData = await linkRes.json();
+        if (!linkRes.ok) return null;
+        const linkData = await linkRes.json();
 
-          return {
-            name: file.name,
-            url:  linkData.link,
-            modified: file.server_modified
-          };
-        } catch {
-          return null;
-        }
-      }));
-
-      photos.push(...batchResults.filter(Boolean));
-    }
+        return {
+          name:     file.name,
+          url:      linkData.link,
+          modified: file.server_modified
+        };
+      } catch {
+        return null;
+      }
+    }))).filter(Boolean);
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ photos })
+      body: JSON.stringify({
+        photos,
+        total,
+        hasMore: offset + limit < total
+      })
     };
 
   } catch (error) {
