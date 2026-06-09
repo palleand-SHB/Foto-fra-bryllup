@@ -1,4 +1,4 @@
-// netlify/functions/get-dropbox-photos.js
+// netlify/functions/get-dropbox-photos.js  v4 – pagineret
 // Serverless function der henter billedlisten fra Dropbox og returnerer midlertidige links.
 // Understøtter paginering via ?offset=0&limit=30 så vi altid er indenfor Netlify's timeout.
 
